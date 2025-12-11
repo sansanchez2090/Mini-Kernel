@@ -24,7 +24,7 @@ bool MemoryManager::findAndAllocateFirstFit(int pid, int size, bool isPostCompac
                     memory[j] = pid;
                 }
                 std::cout << "[Memoria] Asignar " 
-                          << (isPostCompaction ? "(después de compactar) " : "")
+                          << (isPostCompaction ? "(despues de compactar) " : "")
                           << size << " bloques al PID=" << pid 
                           << " en el rango: [" << startIndex 
                           << ", " << startIndex + size - 1 << "]\n";
@@ -45,7 +45,7 @@ bool MemoryManager::allocateMemoryFirstFit(int pid, int size) {
         return true;
     }
 
-    std::cout << "[Memoria] First-Fit falló. Intentando compactación...\n";
+    std::cout << "[Memoria] First-Fit fallo. Intentando compactacion...\n";
 
     compactMemory();
 
@@ -55,7 +55,7 @@ bool MemoryManager::allocateMemoryFirstFit(int pid, int size) {
     }
 
     // If Try 2 fails
-    std::cout << "[Memoria] ERROR: No hay suficiente memoria (incluso después de la compactación) para PID = " 
+    std::cout << "[Memoria] ERROR: No hay suficiente memoria para PID = " 
               << pid << " (" << size << " bloques necesarios)\n";
     return false;
 }
@@ -72,7 +72,9 @@ void MemoryManager::freeMemory(int pid) {
 }
 
 void MemoryManager::compactMemory() {
-    std::cout << "\n[Memory] Compacting memory...\n";
+    std::cout << "\n[Memoria] INICIANDO COMPACTACION...\n";
+    std::cout << ">>> Memoria ANTES de compactar (Fragmentada) <<<\n";
+    printMemory();
 
     std::vector<int> newMemory(totalSize, -1);
     int writeIndex = 0;
@@ -87,7 +89,8 @@ void MemoryManager::compactMemory() {
 
     memory = newMemory;
 
-    std::cout << "[Memory] Compaction completed.\n";
+    std::cout << "\n[Memoria] COMPACTACION FINZALIZADA...\n";
+    std::cout << ">>> Memoria DESPUES de compactar (Contigua) <<<\n";
     printMemory();
 }
 
