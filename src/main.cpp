@@ -1,41 +1,52 @@
 #include "../include/ProcessManager.h"
 #include "../include/MemoryManager.h"
+#include "../include/IOManager.h"
+#include "../include/FileManager.h"
+
+#include <iostream>
 
 int main() {
-    
-    // 1. Inicialización de la simulación
-    MemoryManager mem(30);   // Memoria de 30 bloques
-    ProcessManager pm(&mem);
-    
+    // Bootstraps memory, IO, and file managers to run an integrated RR scenario.
+    MemoryManager mem(30);
+    FileManager fileManager;
+    IOManager ioManager;
+    ProcessManager pm(&mem, &ioManager, &fileManager);
+
     std::cout << "\n======================================================================\n";
-    std::cout << "--- ESCENARIO DE COMPACTACION (Round-Robin, Quantum=2) ---\n";
-    std::cout << " Objetivo: Fragmentar memoria y obligar a P4 a compactar para asignarse. \n";
+    std::cout << "--- ESCENARIO INTEGRADO (RR, Quantum=2) ---\n";
+    std::cout << " Procesos + Memoria + Archivos + E/S \n";
     std::cout << "======================================================================\n";
 
-    // 2. Creación de Procesos que Fragmentarán la Memoria (Llegan a T=0)
-    
-    // P1 (Grande): R=12, M=10KB. Dejará un hueco grande al final.
-    pm.createProcess(12, 10, 0); 
-    // P2 (Grande): R=12, M=10KB. Dejará un hueco grande al final.
-    pm.createProcess(12, 10, 0); 
-    // P3 (Pequeño): R=5, M=5KB. Terminará pronto, dejando un hueco pequeño.
-    pm.createProcess(5, 5, 0); 
+    int p1 = pm.createProcess(12, 10, 0);
+    int p2 = pm.createProcess(10, 8, 2);
+    int p3 = pm.createProcess(8, 6, 4);
+    int p4 = pm.createProcess(7, 12, 6);
 
-    // P1, P2 y P3 ocupan [0-24]. Restan 5 bloques libres.
+    pm.scheduleFileAction(p1, 0, FileActionType::CREATE, "p1.log", 512);
+    pm.scheduleFileAction(p1, 1, FileActionType::OPEN, "p1.log");
+    pm.scheduleIOAction(p1, 3, DeviceType::DISCO, "Lectura de disco P1");
+    pm.scheduleFileAction(p1, 6, FileActionType::CLOSE, "p1.log");
 
-    // 3. Proceso que FALLARÁ Inicialmente y Forzará la Compactación
-    
-    // P4: Necesita 15KB. No cabrá si P1, P2 y P3 han terminado en orden RR.
-    // Lo hacemos llegar tarde para que la fragmentación ocurra durante la ejecución.
-    pm.createProcess(10, 15, 15); 
-    
-    // 4. Ejecución de la Simulación
-    pm.runRoundRobin(2); // Ejecución con Quantum = 2
+    pm.scheduleFileAction(p2, 0, FileActionType::CREATE, "tabla_proc.txt", 256);
+    pm.scheduleIOAction(p2, 2, DeviceType::TECLADO, "Lectura teclado P2");
+    pm.scheduleFileAction(p2, 3, FileActionType::OPEN, "tabla_proc.txt");
 
-    // 5. Resultados Finales
+    pm.scheduleIOAction(p3, 1, DeviceType::RED, "Envio paquete P3");
+    pm.scheduleFileAction(p3, 2, FileActionType::OPEN, "tabla_proc.txt");
+    pm.scheduleFileAction(p3, 4, FileActionType::CLOSE, "tabla_proc.txt");
+
+    pm.scheduleIOAction(p4, 0, DeviceType::DISCO, "Carga inicial P4");
+
+    pm.runRoundRobin(2);
+
     std::cout << "\n=== RESULTADOS FINALES DE LA SIMULACION ===\n";
     mem.printMemory();
+    mem.printPageTables();
     pm.printProcessTable();
+    fileManager.printDirectory();
+    fileManager.printOpenFiles();
+    ioManager.printDeviceTable();
+    ioManager.printPendingRequests();
 
     return 0;
 }
