@@ -7,8 +7,6 @@ Enum para las transiciones de estado en un sistema de gestión de procesos.
 
 #include <string>
 
-using namespace std;
-
 enum class StateTransition {
     NUEVO,
     LISTO,
@@ -16,7 +14,7 @@ enum class StateTransition {
     TERMINADO
 };
 
-string stateTransitionToString(StateTransition state) {
+inline std::string stateTransitionToString(StateTransition state) {
     switch (state) {
         case StateTransition::NUEVO:
             return "NUEVO";
