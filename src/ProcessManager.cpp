@@ -8,13 +8,15 @@ using namespace std::chrono_literals;
 
 ProcessManager::ProcessManager(MemoryManager* mem) : nextPid(1), memoryManager(mem) {}
 
-int ProcessManager::createProcess(int burstTime, int memoryRequired, int arrivalTime) {
+int ProcessManager::createProcess(int burstTime, int memoryRequired, int arrivalTime, 
+    AllocationMode mode) {
     int pid = nextPid++;
-    allprocesses.emplace_back(pid, burstTime, memoryRequired, arrivalTime);
+    allprocesses.emplace_back(pid, burstTime, memoryRequired, arrivalTime, mode);
     std::cout << "[Kernel] Proceso creado...\n PID = " << pid
               << " Tiempo de llegada = " << arrivalTime
               << " rafaga = " << burstTime
-              << " mem = " << memoryRequired << "KB\n";
+              << " mem = " << memoryRequired << "KB\n"
+              << " modo = " << (mode == AllocationMode::PAGED? "PAGED" : "CONTIGOUS") << "\n";
     return pid;
 }
 
@@ -28,8 +30,16 @@ void ProcessManager::admitProcess(int pid) {
     PCB* process = getPCB(pid);
     if (!process) return;
 
+    bool isMemoryEmpty = false;
     // try to allocate memory
-    if (!memoryManager->allocateMemoryFirstFit(pid, process->memoryRequired)) {
+    if(process->allocationMode == AllocationMode::CONTIGOUS){
+        isMemoryEmpty = memoryManager->allocateMemoryFirstFit(pid, process->memoryRequired);
+    } else { 
+        int pagesNeeded = memoryManager->pagesNeededForSize(process->memoryRequired);
+        isMemoryEmpty = memoryManager->allocatePagedMemory(pid, pagesNeeded);
+    }
+
+    if(!isMemoryEmpty){
         std::cout << "[Planificador] PID=" << pid 
                   << " rechazado (no hay memoria disponible)\n";
         return;
@@ -75,7 +85,11 @@ void ProcessManager::transitionToTerminated(int pid) {
     if (!process) return;
     process->state = StateTransition::TERMINADO;
 
-    memoryManager->freeMemory(pid);
+    if (process->allocationMode == AllocationMode::CONTIGOUS) {
+        memoryManager->freeMemory(pid);
+    } else {
+        memoryManager->freePagedMemory(pid);
+    }
     std::cout << "[Estado] PID = " << pid << " -> TERMINADO\n";
 }
 
@@ -159,6 +173,6 @@ void ProcessManager::printProcessTable() const {
     for (const auto& p : allprocesses) {
         std::cout << p.pid << "\t" << stateTransitionToString(p.state)
                   << "\t" << p.burstTime << "\t" << p.remainingTime
-                  << "\t" << p.memoryRequired << "KB\n";
+                  << "\t\t" << p.memoryRequired << "KB\n";
     }
 }

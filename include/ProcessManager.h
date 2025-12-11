@@ -5,6 +5,11 @@
 #include <vector>
 #include <queue>
 
+enum class AllocationMode {
+    CONTIGOUS,
+    PAGED
+};
+
 struct PCB {
     int pid;
     StateTransition state;
@@ -12,11 +17,12 @@ struct PCB {
     int remainingTime; 
     int memoryRequired;
     int arrivalTime; 
+    AllocationMode allocationMode;
 
-    PCB(int id, int burst, int mem, int arrival)
+    PCB(int id, int burst, int mem, int arrival, AllocationMode mode = AllocationMode::CONTIGOUS)
         : pid(id), state(StateTransition::NUEVO),
           burstTime(burst), remainingTime(burst),
-          memoryRequired(mem), arrivalTime(arrival) {}
+          memoryRequired(mem), arrivalTime(arrival), allocationMode(mode) {}
 };
 
 class MemoryManager; // Forward declaration
@@ -25,7 +31,7 @@ class ProcessManager {
 public:
     ProcessManager(MemoryManager* mem);
 
-    int createProcess(int burstTime, int memoryRequired, int arrivalTime);
+    int createProcess(int burstTime, int memoryRequired, int arrivalTime,  AllocationMode mode = AllocationMode::CONTIGOUS);
 
     void admitProcess(int pid);
 

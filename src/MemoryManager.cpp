@@ -1,10 +1,14 @@
 #include "MemoryManager.h"
 
-MemoryManager::MemoryManager(int totalSize) 
-    : totalSize(totalSize), memory(totalSize, -1) 
+MemoryManager::MemoryManager(int totalSize, int frameSize) 
+    : totalSize(totalSize), memory(totalSize, -1),
+      frameSize(frameSize)
 {
+    totalFrames = totalSize / frameSize;
+    frameTable = std::vector<int>(totalFrames, -1);
     std::cout << "[Memoria] Inicializada con " << totalSize 
-              << " bloques.\n";
+              << " Bloques de memoria " << totalFrames 
+              << " Frames de tamaño " << frameSize << " bloques.\n";
 }
 
 bool MemoryManager::findAndAllocateFirstFit(int pid, int size, bool isPostCompaction) {
@@ -105,3 +109,71 @@ void MemoryManager::printMemory() const {
     }
     std::cout << "\n";
 }
+
+int MemoryManager::pagesNeededForSize(int size) const {
+    // tamaño en bloques / frameSize (ceil)
+    return (size + frameSize - 1) / frameSize;
+}
+
+bool MemoryManager::allocatePagedMemory(int pid, int pagesNeeded) {
+    std::vector<int> assigned;
+
+    for (int f = 0; f < totalFrames; ++f) {
+        if (frameTable[f] == -1) {
+            assigned.push_back(f);
+            if ((int)assigned.size() == pagesNeeded) break;
+        }
+    }
+
+    if ((int)assigned.size() < pagesNeeded) {
+        std::cout << "[Paginacion] ERROR: No hay frames libres suficientes para PID = " 
+                  << pid << " (necesita " << pagesNeeded << ")\n";
+        return false;
+    }
+
+    // Reservar frames
+    for (int f : assigned) frameTable[f] = pid;
+
+    // Mapear la page table
+    pageTables[pid] = PageTable{ assigned };
+
+    std::cout << "[Paginacion] PID = " << pid << " asignado " << pagesNeeded 
+              << " paginas (frames:";
+    for (int f : assigned) std::cout << " " << f;
+    std::cout << " )\n";
+
+    return true;
+}
+
+void MemoryManager::freePagedMemory(int pid) {
+    if (pageTables.find(pid) == pageTables.end()) return;
+
+    for (int f : pageTables[pid].frames) {
+        if (f >= 0 && f < totalFrames) frameTable[f] = -1;
+    }
+    pageTables.erase(pid);
+    std::cout << "[Paginacion] Liberadas paginas de PID=" << pid << "\n";
+}
+
+void MemoryManager::printPageTables() const {
+    std::cout << "\n=== Page Tables ===\n";
+    for (const auto& entry : pageTables) {
+        std::cout << "PID " << entry.first << ":";
+        for (int f : entry.second.frames) std::cout << " [F" << f << "]";
+        std::cout << "\n";
+    }
+}
+
+void MemoryManager::printFrameTable() const {
+    std::cout << "\n=== Frame Table (" << totalFrames << " frames) ===\n";
+    for (int i = 0; i < totalFrames; ++i) {
+        if (frameTable[i] == -1) std::cout << "[ ]";
+        else std::cout << "[" << frameTable[i] << "]";
+    }
+    std::cout << "\n";
+}
+
+int MemoryManager::getFrameSize() const {
+    return frameSize;
+}
+
