@@ -1,15 +1,19 @@
 #include "../include/ProcessManager.h"
-#include <iostream>
+#include "../include/MemoryManager.h"
 
 int main() {
-    ProcessManager pm;
 
-    pm.createProcess(6, 100, 0); // P1 llega en t=0
-    pm.createProcess(4, 50, 2);  // P2 llega en t=2
-    pm.createProcess(7, 70, 5);  // P3 llega en t=5
+    MemoryManager mem(30);   // memoria de 30 bloques
+    ProcessManager pm(&mem);
 
-    pm.runRoundRobin(2);   // Round Robin con quantum 2
+    pm.createProcess(6, 6, 0);   // burst=6, mem=6 bloques, arrival=0
+    pm.createProcess(4, 5, 2);
+    pm.createProcess(7, 8, 5);
 
+    pm.runRoundRobin(2);
+
+    mem.printMemory();
     pm.printProcessTable();
+
     return 0;
 }

@@ -1,7 +1,3 @@
-/*
-Módulo encargado del gestor de procesos.
-*/
-
 #ifndef PROCESSMANAGER_H
 #define PROCESSMANAGER_H
 
@@ -23,11 +19,15 @@ struct PCB {
           memoryRequired(mem), arrivalTime(arrival) {}
 };
 
+class MemoryManager; // Forward declaration
+
 class ProcessManager {
 public:
-    ProcessManager();
+    ProcessManager(MemoryManager* mem);
 
     int createProcess(int burstTime, int memoryRequired, int arrivalTime);
+
+    void admitProcess(int pid);
 
     void admitProcessesByTime(int currentTime);
 
@@ -38,7 +38,8 @@ public:
 
 private:
     int nextPid;
-    std::vector<PCB> allprocesses;     // accesible por pid-1
+    MemoryManager* memoryManager;
+    std::vector<PCB> allprocesses;
     std::queue<int> readyQueue;
 
     PCB* getPCB(int pid);

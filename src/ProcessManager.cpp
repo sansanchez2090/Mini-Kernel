@@ -1,11 +1,12 @@
 #include "ProcessManager.h"
+#include "../include/MemoryManager.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
 
 using namespace std::chrono_literals;
 
-ProcessManager::ProcessManager() : nextPid(1) {}
+ProcessManager::ProcessManager(MemoryManager* mem) : nextPid(1), memoryManager(mem) {}
 
 int ProcessManager::createProcess(int burstTime, int memoryRequired, int arrivalTime) {
     int pid = nextPid++;
@@ -23,13 +24,30 @@ PCB* ProcessManager::getPCB(int pid) {
     return &allprocesses[index];
 }
 
+void ProcessManager::admitProcess(int pid) {
+    PCB* process = getPCB(pid);
+    if (!process) return;
+
+    // try to allocate memory
+    if (!memoryManager->allocateMemoryFirstFit(pid, process->memoryRequired)) {
+        std::cout << "[Planificador] PID=" << pid 
+                  << " rechazado (no hay memoria disponible)\n";
+        return;
+    }
+
+    transitionToReady(pid);
+    readyQueue.push(pid);
+
+    std::cout << "[Planificador] PID=" << pid 
+              << " agregado a los listos\n";
+}
+
 void ProcessManager::admitProcessesByTime(int currentTime) {
     for (auto& process : allprocesses) {
         if (process.state == StateTransition::NUEVO && process.arrivalTime <= currentTime) {
-            transitionToReady(process.pid);
-            readyQueue.push(process.pid);
             std::cout << "[Tiempo " << currentTime << "] PID = " << process.pid 
-                      << " llego y fue agregado a los listos\n";
+                      << " llego\n";
+            admitProcess(process.pid);
         }
     }
 }
@@ -56,6 +74,8 @@ void ProcessManager::transitionToTerminated(int pid) {
     PCB* process = getPCB(pid);
     if (!process) return;
     process->state = StateTransition::TERMINADO;
+
+    memoryManager->freeMemory(pid);
     std::cout << "[Estado] PID = " << pid << " -> TERMINADO\n";
 }
 
