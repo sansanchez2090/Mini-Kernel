@@ -9,7 +9,7 @@ ProcessManager::ProcessManager() : nextPid(1) {}
 
 int ProcessManager::createProcess(int burstTime, int memoryRequired, int arrivalTime) {
     int pid = nextPid++;
-    allprocesses.emplace_back(pid, burstTime, memoryRequired);
+    allprocesses.emplace_back(pid, burstTime, memoryRequired, arrivalTime);
     std::cout << "[Kernel] Proceso creado...\n PID = " << pid
               << " Tiempo de llegada = " << arrivalTime
               << " rafaga = " << burstTime
