@@ -79,7 +79,7 @@ void MemoryManager::compactMemory() {
     std::vector<int> newMemory(totalSize, -1);
     int writeIndex = 0;
 
-    // Mover todos los bloques ocupados hacia la izquierda
+    // Moved all blocks to the left
     for (int i = 0; i < totalSize; i++) {
         if (memory[i] != -1) {
             newMemory[writeIndex] = memory[i];
