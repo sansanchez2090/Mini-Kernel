@@ -158,7 +158,7 @@ void ProcessManager::printProcessTable() const {
     std::cout << "PID\tESTADO\t\tRAFAGA\tRESTANTES\tMEM\n";
     for (const auto& p : allprocesses) {
         std::cout << p.pid << "\t" << stateTransitionToString(p.state)
-                  << "\t\t" << p.burstTime << "\t" << p.remainingTime
-                  << "\t\t" << p.memoryRequired << "KB\n";
+                  << "\t" << p.burstTime << "\t" << p.remainingTime
+                  << "\t" << p.memoryRequired << "KB\n";
     }
 }
