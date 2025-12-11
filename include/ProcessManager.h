@@ -9,8 +9,6 @@ Módulo encargado del gestor de procesos.
 #include <vector>
 #include <queue>
 
-using namespace std;
-
 struct PCB {
     int pid;
     StateTransition state;
@@ -39,8 +37,8 @@ public:
 
 private:
     int nextPid;
-    vector<PCB> pcbs;     // accesible por pid-1
-    queue<int> readyQueue;
+    std::vector<PCB> pcbs;     // accesible por pid-1
+    std::queue<int> readyQueue;
 
     PCB* getPCB(int pid);
     void transitionToReady(int pid);
