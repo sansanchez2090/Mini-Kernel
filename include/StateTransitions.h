@@ -1,5 +1,5 @@
 /*
-Enum para las transiciones de estado en un sistema de gestión de procesos.
+Enum to represent state transitions for processes.
 */
 
 #ifndef STATETRANSITIONS_h
