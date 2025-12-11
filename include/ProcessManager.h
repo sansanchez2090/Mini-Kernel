@@ -37,7 +37,7 @@ public:
 
 private:
     int nextPid;
-    std::vector<PCB> pcbs;     // accesible por pid-1
+    std::vector<PCB> allprocesses;     // accesible por pid-1
     std::queue<int> readyQueue;
 
     PCB* getPCB(int pid);
