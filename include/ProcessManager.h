@@ -14,21 +14,22 @@ struct PCB {
     StateTransition state;
     int burstTime;      
     int remainingTime; 
-    int memoryRequired; 
+    int memoryRequired;
+    int arrivalTime; 
 
-    PCB(int id, int burst, int mem)
+    PCB(int id, int burst, int mem, int arrival)
         : pid(id), state(StateTransition::NUEVO),
           burstTime(burst), remainingTime(burst),
-          memoryRequired(mem) {}
+          memoryRequired(mem), arrivalTime(arrival) {}
 };
 
 class ProcessManager {
 public:
     ProcessManager();
 
-    int createProcess(int burstTime, int memoryRequired);
+    int createProcess(int burstTime, int memoryRequired, int arrivalTime);
 
-    void admitProcess(int pid);
+    void admitProcessesByTime(int currentTime);
 
     void runRoundRobin(int q); 
 

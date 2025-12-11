@@ -7,11 +7,12 @@ using namespace std::chrono_literals;
 
 ProcessManager::ProcessManager() : nextPid(1) {}
 
-int ProcessManager::createProcess(int burstTime, int memoryRequired) {
+int ProcessManager::createProcess(int burstTime, int memoryRequired, int arrivalTime) {
     int pid = nextPid++;
     allprocesses.emplace_back(pid, burstTime, memoryRequired);
     std::cout << "[Kernel] Proceso creado...\n PID = " << pid
-              << " burst = " << burstTime
+              << " Tiempo de llegada = " << arrivalTime
+              << " rafaga = " << burstTime
               << " mem = " << memoryRequired << "KB\n";
     return pid;
 }
@@ -22,12 +23,15 @@ PCB* ProcessManager::getPCB(int pid) {
     return &allprocesses[index];
 }
 
-void ProcessManager::admitProcess(int pid) {
-    PCB* process = getPCB(pid);
-    if (!process) return;
-    transitionToReady(pid);
-    readyQueue.push(pid);
-    std::cout << "[Kernel] PID = " << pid << " agregado a la cola de listos\n";
+void ProcessManager::admitProcessesByTime(int currentTime) {
+    for (auto& process : allprocesses) {
+        if (process.state == StateTransition::NUEVO && process.arrivalTime <= currentTime) {
+            transitionToReady(process.pid);
+            readyQueue.push(process.pid);
+            std::cout << "[Tiempo " << currentTime << "] PID = " << process.pid 
+                      << " llego y fue agregado a los listos\n";
+        }
+    }
 }
 
 bool ProcessManager::hasReadyProcesses() const {
@@ -57,38 +61,81 @@ void ProcessManager::transitionToTerminated(int pid) {
 
 
 void ProcessManager::runRoundRobin(int quantum) {
-    std::cout << "[Planificador] Ejecutando Round-Robin (quantum=" << quantum << ")\n";
-    while (hasReadyProcesses()) {
-        int pid = readyQueue.front();
-        readyQueue.pop();
+    std::cout << "\n[Planificador] Ejecutando Round Robin (quantum = " 
+              << quantum << ")...\n";
 
-        PCB* process = getPCB(pid);
-        if (!process) continue;
+    int systemTime = 0;
+    bool allTerminated = false;
 
-        transitionToRunning(pid);
+    while (!allTerminated) {
 
-        int runUnits = std::min(quantum, process->remainingTime);
-        for (int t = 0; t < runUnits; ++t) {
-            std::cout << "[Proceso " << pid << "] ejecutando unidad: " << (process->burstTime - process->remainingTime + t + 1)
-                      << "/" << process->burstTime << "\n";
-            std::this_thread::sleep_for(300ms);
+        std::cout << "\n=== Tiempo " << systemTime << " ===\n";
+
+        admitProcessesByTime(systemTime);
+
+        if (hasReadyProcesses()) {
+            int pid = readyQueue.front();
+            readyQueue.pop();
+
+            PCB* process = getPCB(pid);
+            transitionToRunning(pid);
+
+            int executedUnits = 0;
+
+            // Advance up to quantum or until process finishes
+            while (executedUnits < quantum && process->remainingTime > 0) {
+
+                std::cout << "[Proceso " << pid << "] Ejecutando en tiempo " 
+                          << systemTime << " (restantes = " 
+                          << process->remainingTime << ")\n";
+
+                // Advance one time unit
+                std::this_thread::sleep_for(300ms);
+                process->remainingTime--;
+                executedUnits++;
+
+                // Global time increment
+                systemTime++;
+
+                // Admit new arrivals in the global time
+                std::cout << "\n=== Tiempo " << systemTime << " ===\n";
+                admitProcessesByTime(systemTime);
+            }
+
+            if (process->remainingTime <= 0) {
+                transitionToTerminated(pid);
+                std::cout << "[Planificador] PID = " << pid << " terminado\n";
+            }
+            else {
+                transitionToReady(pid);
+                readyQueue.push(pid);
+                std::cout << "[Planificador] PID = " << pid 
+                          << " interrumpido, restantes=" 
+                          << process->remainingTime << "\n";
+            }
         }
-        process->remainingTime -= runUnits;
+        else {
+            // No READY processes
+            std::cout << "[CPU] Inactivo (Esperando procesos en listos)\n";
+            std::this_thread::sleep_for(300ms);
+            systemTime++;
+        }
 
-        if (process->remainingTime <= 0) {
-            transitionToTerminated(pid);
-            std::cout << "[Planificador] PID = " << pid << " Terminado\n";
-        } else {
-            transitionToReady(pid);
-            readyQueue.push(pid);
-            std::cout << "[Planificador] PID = " << pid << " interrumpido, restan = " << process->remainingTime << "\n";
+        allTerminated = true;
+        for (auto& process : allprocesses) {
+            if (process.state != StateTransition::TERMINADO) {
+                allTerminated = false;
+                break;
+            }
         }
     }
-    std::cout << "[Planificador] Round-Robin completado\n";
+
+    std::cout << "\n[Planificador] Round-Robin completado.\n";
+
 }
 
 void ProcessManager::printProcessTable() const {
-    std::cout << "PID\tSTATE\t\tBURST\tREMAINING\tMEM\n";
+    std::cout << "PID\tESTADO\t\tRAFAGA\tRESTANTES\tMEM\n";
     for (const auto& p : allprocesses) {
         std::cout << p.pid << "\t" << stateTransitionToString(p.state)
                   << "\t\t" << p.burstTime << "\t" << p.remainingTime
