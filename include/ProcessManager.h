@@ -1,0 +1,51 @@
+/*
+Módulo encargado del gestor de procesos.
+*/
+
+#ifndef PROCESSMANAGER_H
+#define PROCESSMANAGER_H
+
+#include <StateTransitions.h>
+#include <vector>
+#include <queue>
+
+using namespace std;
+
+struct PCB {
+    int pid;
+    StateTransition state;
+    int burstTime;      
+    int remainingTime; 
+    int memoryRequired; 
+
+    PCB(int id, int burst, int mem)
+        : pid(id), state(StateTransition::NUEVO),
+          burstTime(burst), remainingTime(burst),
+          memoryRequired(mem) {}
+};
+
+class ProcessManager {
+public:
+    ProcessManager();
+
+    int createProcess(int burstTime, int memoryRequired);
+
+    void admitProcess(int pid);
+
+    void runRoundRobin(int q); 
+
+    void printProcessTable() const;
+    bool hasReadyProcesses() const;
+
+private:
+    int nextPid;
+    vector<PCB> pcbs;     // accesible por pid-1
+    queue<int> readyQueue;
+
+    PCB* getPCB(int pid);
+    void transitionToReady(int pid);
+    void transitionToRunning(int pid);
+    void transitionToTerminated(int pid);
+};
+
+#endif
